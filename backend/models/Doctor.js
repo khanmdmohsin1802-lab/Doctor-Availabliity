@@ -11,19 +11,19 @@ const validSpecialty = [
 ];
 
 const doctorSchema = new mongoose.Schema({
-// doctors specialty attribute
+  // doctors specialty attribute
   specialty: {
     type: String,
     required: true,
-    enum : {
-        values : validSpecialty,
-    }
+    enum: {
+      values: validSpecialty,
+    },
   },
-// doctors years of experience attribute
+  // doctors years of experience attribute
   experienceYears: {
     type: Number,
   },
-// wheater doctor is accepting or not attribute
+  // wheater doctor is accepting or not attribute
   isAcceptingPatients: {
     type: Boolean,
     default: false,
