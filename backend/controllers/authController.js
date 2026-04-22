@@ -68,4 +68,4 @@ const handleLogin = async (req, res) => {
     });
   }
 };
-export { handleRegister };
+export { handleRegister, handleLogin };
