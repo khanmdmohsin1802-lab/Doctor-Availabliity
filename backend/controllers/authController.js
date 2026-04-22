@@ -24,7 +24,7 @@ const handleRegister = async (req, res) => {
         .status(400)
         .json({ message: "User already exist", help: "Try logging in" });
     }
-    //hash the password before storing
+    // genrate Salt AND hash the password before storing in the DB
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
 
@@ -55,7 +55,7 @@ const handleRegister = async (req, res) => {
 const handleLogin = async (req, res) => {
   const { email, password } = req.body;
 
-  const tryUser = await User.findOne({ email }); // stores the one with that email or gives false if not exist
+  const tryUser = await User.findOne({ email }); // stores data of the one with that email () or gives false if not exist
 
   //check if user exist and also check the password by comparing the recived password and the tryUser password stord in form of hash using bcrypt compare
   if (tryUser && (await bcrypt.compare(password, tryUser.password))) {
@@ -68,4 +68,4 @@ const handleLogin = async (req, res) => {
     });
   }
 };
-export { handleRegister };
+export { handleRegister, handleLogin };
