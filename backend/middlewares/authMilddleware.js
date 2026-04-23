@@ -16,14 +16,15 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(" ")[1];
 
       //decode the token and see if it matches with the jwt secret
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       //get the user by the id and store in the req.user object for other to use
       req.user = await User.findById(decoded.id).select("-password");
 
       next(); //to the next middleware
     } catch (error) {
-      res.status(401).json({ message: "Not Authorized, Token Failed" });
+      console.log(error.message);
+      return res.status(401).json({ message: "Not Authorized, Token Failed" });
     }
 
   if (!token) {
