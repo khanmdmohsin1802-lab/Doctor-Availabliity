@@ -39,7 +39,7 @@ const handleRegister = async (req, res) => {
     }
 
     //send the response for the frontend to use
-    res.json({
+    res.status(201).json({
       _id: newUser._id,
       name: newUser.name,
       email: newUser.email,
@@ -59,7 +59,7 @@ const handleLogin = async (req, res) => {
 
   //check if user exist and also check the password by comparing the recived password and the tryUser password stord in form of hash using bcrypt compare
   if (tryUser && (await bcrypt.compare(password, tryUser.password))) {
-    res.json({
+    res.status(200).json({
       _id: tryUser._id,
       name: tryUser.name,
       email: tryUser.email,
