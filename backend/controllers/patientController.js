@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Doctor from "../models/Doctor.js";
 
 const getDoctors = async (req, res) => {
   try {
@@ -53,4 +54,27 @@ const getDoctors = async (req, res) => {
   }
 };
 
-export { getDoctors };
+const getDoctorInfoById = async (req, res) => {
+  try {
+    const doctorId = req.params.id;
+
+    const doctor = await User.findById(doctorId).select("-password");
+
+    if (!doctor || doctor.role != "doctor") {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor Not Found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: doctor,
+    });
+  } catch (error) {
+    console.log(error.message);
+    res.staus(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export { getDoctors, getDoctorInfoById };
