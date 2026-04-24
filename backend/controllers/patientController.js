@@ -1,5 +1,5 @@
 import User from "../models/User.js";
-import Doctor from "../models/Doctor.js";
+import Queue from "../models/Queue.js";
 
 const getDoctors = async (req, res) => {
   try {
@@ -54,12 +54,16 @@ const getDoctors = async (req, res) => {
   }
 };
 
+// Get doctor Information
 const getDoctorInfoById = async (req, res) => {
   try {
+    // get doctor Id
     const doctorId = req.params.id;
 
+    // get the doctor Info but remove password for security
     const doctor = await User.findById(doctorId).select("-password");
 
+    // Check if such doctor exsist and also confirm it's role as a doctor
     if (!doctor || doctor.role != "doctor") {
       return res.status(404).json({
         success: false,
@@ -67,6 +71,7 @@ const getDoctorInfoById = async (req, res) => {
       });
     }
 
+    // if everything fine send the response for the frontend 
     res.status(200).json({
       success: true,
       data: doctor,
@@ -77,4 +82,67 @@ const getDoctorInfoById = async (req, res) => {
   }
 };
 
-export { getDoctors, getDoctorInfoById };
+// function to join a Queue
+const handleJoinQueue = async (req, res) => {
+  try {
+    // get the inputs 
+    const { doctorId, reasonForVisit } = req.body;
+
+    // get the patient's Id using req.user._id (from the auth controller)
+    const patientId = req.user._id;
+
+    // get the doctor user wants to book the appointment of
+    const doctor = await User.findById(doctorId);
+
+    // check if such doctor exsist and also confirm if the role is doctor
+    if (!doctor || doctor.role != "doctor") {
+      return res
+        .status(404)
+        .json({ success: false, message: "Doctor Not Found" });
+    }
+
+    // check the status of doctor (currently accepting or not)
+    if (!doctor.isAcceptingPatients) {
+      return res.status(400).json({
+        success: false,
+        message: "Doctor is NOT currently Accepting any Patients",
+      });
+    }
+
+    // check if the user is already in the queue to avoid spam
+    const exsistingQueue = await User.findOne({
+      patientId,
+      doctorId,
+      status: "waiting",
+    });
+
+    //  give the response Bad Request for existing Queue
+    if (exsistingQueue) {
+      return res.status(400).json({
+        success: false,
+        message: "You are Already Waiting in the Queue",
+      });
+    }
+    //  when everything correct create a new queue 
+    const newQueueEntry = await Queue.create({
+      patientId,
+      doctorId,
+      reasonForVisit: reasonForVisit || "Genral consultation",
+      status: "waiting",
+    });
+
+    // give the successful response and the data for the frontend
+    res.status(201).json({
+      success: true,
+      message: `You are in the waitlist of doctor : ${doctor.name} `,
+      data: newQueueEntry,
+    });
+  } catch (error) {
+    res.status(500).json({
+      succcess: false,
+      error: error.message,
+    });
+  }
+};
+
+export { getDoctors, getDoctorInfoById, handleJoinQueue };
