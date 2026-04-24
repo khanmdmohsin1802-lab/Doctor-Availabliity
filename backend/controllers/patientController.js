@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import Queue from "../models/Queue.js";
+import Doctor from "../models/Doctor.js";
 
 const getDoctors = async (req, res) => {
   try {
@@ -71,7 +72,7 @@ const getDoctorInfoById = async (req, res) => {
       });
     }
 
-    // if everything fine send the response for the frontend 
+    // if everything fine send the response for the frontend
     res.status(200).json({
       success: true,
       data: doctor,
@@ -85,7 +86,7 @@ const getDoctorInfoById = async (req, res) => {
 // function to join a Queue
 const handleJoinQueue = async (req, res) => {
   try {
-    // get the inputs 
+    // get the inputs
     const { doctorId, reasonForVisit } = req.body;
 
     // get the patient's Id using req.user._id (from the auth controller)
@@ -110,11 +111,13 @@ const handleJoinQueue = async (req, res) => {
     }
 
     // check if the user is already in the queue to avoid spam
-    const exsistingQueue = await User.findOne({
-      patientId,
-      doctorId,
+    const exsistingQueue = await Queue.findOne({
+      patientId: req.user._id,
+      doctorId: doctor,
       status: "waiting",
     });
+
+    console.log(exsistingQueue);
 
     //  give the response Bad Request for existing Queue
     if (exsistingQueue) {
@@ -123,7 +126,7 @@ const handleJoinQueue = async (req, res) => {
         message: "You are Already Waiting in the Queue",
       });
     }
-    //  when everything correct create a new queue 
+    //  when everything correct create a new queue
     const newQueueEntry = await Queue.create({
       patientId,
       doctorId,
@@ -145,4 +148,65 @@ const handleJoinQueue = async (req, res) => {
   }
 };
 
-export { getDoctors, getDoctorInfoById, handleJoinQueue };
+// get Live Queue status
+const getLiveQueue = async (req, res) => {
+  try {
+    const patientId = req.user._id;
+
+    // get the patient appointemt details and doctor he is current appointed at
+    const currentTicket = await Queue.findOne({
+      patientId: patientId,
+      status: "waiting",
+      //   uses .populate basically like join
+    }).populate("doctorId", "name specialty"); // also store doctors name and specialty for more info
+
+    //  if currentTicket is empty means patient hasn't booked any appointments
+    if (!currentTicket) {
+      return res.status(404).json({
+        success: false,
+        message: "You are not currently waiting in a queue",
+      });
+    }
+
+    const safeDoctorId = currentTicket.doctorId._id || currentTicket.doctorId;
+
+    console.log(
+      "Looking for people ahead of ticket created at:",
+      currentTicket.createdAt,
+    );
+    console.log("Doctor ID we are searching for:", safeDoctorId);
+
+    // get count of how many people are ahead
+    const peopleAhead = await Queue.countDocuments({
+      doctorId: currentTicket.doctorId,
+      status: "waiting",
+      createdAt: { $lt: new Date(currentTicket.createdAt) },
+    });
+
+    console.log(peopleAhead);
+    //  formulas to calculate estimated time
+    const currentPosition = peopleAhead + 1;
+    const avgCheckUpTime = 15;
+    const estimatedWaitTime = currentPosition * avgCheckUpTime;
+
+    res.status(200).json({
+      succcess: true,
+      data: {
+        doctorName: currentTicket.doctorId.name,
+        doctorSpecialty: currentTicket.doctorId.specialty,
+        postion: currentPosition,
+        peopleAhead: peopleAhead,
+        avgCheckUpTime: avgCheckUpTime,
+        estimatedWaitTime: estimatedWaitTime,
+        joinedAt: currentTicket.createdAt,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+export { getDoctors, getDoctorInfoById, handleJoinQueue, getLiveQueue };

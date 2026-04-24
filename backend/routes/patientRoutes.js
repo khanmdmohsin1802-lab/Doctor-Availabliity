@@ -4,16 +4,21 @@ import {
   getDoctors,
   getDoctorInfoById,
   handleJoinQueue,
+  getLiveQueue,
 } from "../controllers/patientController.js";
 
 const router = express.Router();
 
+// authorization middleware
 router.use(protect);
 router.use(authorizeRoles("patient"));
 
+//  fetch doctor details routes
 router.get("/doctors", getDoctors);
 router.get("/doctors/:id", getDoctorInfoById);
 
+// queue realted routes
 router.post("/queue/join", handleJoinQueue);
+router.get("/queue/status", getLiveQueue);
 
 export default router;

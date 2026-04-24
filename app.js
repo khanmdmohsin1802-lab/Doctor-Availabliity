@@ -25,7 +25,7 @@ mongoose
     console.log("MongoDB server connected");
 
     //Server spin up
-    app.listen(3000, () => console.log("Server is running"));
+    app.listen(8001, () => console.log("Server is running"));
   })
   .catch((error) => {
     console.log("MongoDB connection Error", error);
