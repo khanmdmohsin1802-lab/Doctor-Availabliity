@@ -209,4 +209,50 @@ const getLiveQueue = async (req, res) => {
   }
 };
 
-export { getDoctors, getDoctorInfoById, handleJoinQueue, getLiveQueue };
+const getPatientProfile = async (req, res) => {
+  try {
+    const patientId = req.user._id;
+
+    const profile = await User.findById(patientId).select("-password");
+
+    if (!profile) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    const history = await Queue.find({ patientId: patientId })
+      .populate("doctorId", "name speciality")
+      .sort({ createdAt: -1 });
+
+    if (history.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "You have not Booked Any Appointments from our App",
+        data: {
+          profile: profile,
+          history: [],
+        },
+      });
+    }
+
+    res.status(200).json({
+      profile: profile,
+      history: history,
+    });
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({
+      success: false,
+      error: error,
+    });
+  }
+};
+
+export {
+  getDoctors,
+  getDoctorInfoById,
+  handleJoinQueue,
+  getLiveQueue,
+  getPatientProfile,
+};
