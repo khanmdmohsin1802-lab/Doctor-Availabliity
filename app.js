@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import mongoose from "mongoose";
+import http from "http";
+import { Server } from "socket.io";
 
 //Route imports
 import authRoutes from "./backend/routes/authRoutes.js";
@@ -12,6 +14,25 @@ const app = express();
 
 // middleware to parse input data into Javascript Object
 app.use(express.json());
+
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST", "PATCH", "PUT"],
+  },
+});
+
+app.set("io", io);
+
+io.on("connection", (socket) => {
+  console.log(`⚡ A device connected: ${socket.id}`);
+
+  socket.on("disconnect", () => {
+    console.log(`❌ A device disconnected: ${socket.id}`);
+  });
+});
 
 // every route starting with api/v1/auth go to routes/authRoutes.js and triger the register or login route
 app.use("/api/v1/auth", authRoutes);
@@ -25,7 +46,7 @@ mongoose
     console.log("MongoDB server connected");
 
     //Server spin up
-    app.listen(8001, () => console.log("Server is running"));
+    server.listen(8001, () => console.log("Server is running"));
   })
   .catch((error) => {
     console.log("MongoDB connection Error", error);

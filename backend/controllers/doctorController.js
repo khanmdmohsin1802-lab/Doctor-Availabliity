@@ -62,6 +62,18 @@ const handleNextPatient = async (req, res) => {
       });
     }
 
+    // io engine from the Express app
+    const io = req.app.get("io");
+
+    // send message to everyone that queue has updated 
+    io.emit("queue_updated", { doctorId: doctorId });
+
+    // special emit for the next patient fr checkup "IT'S YOUR TURN!"
+    io.emit("patient_called", {
+      patientId: nextPatient.patientId.name,
+      doctorName: req.user.name,
+    });
+
     res.status(200).json({
       success: true,
       message: `Now seeing ${nextPatient.patientId.name}`,

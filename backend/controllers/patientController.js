@@ -1,7 +1,6 @@
 import User from "../models/User.js";
 import Queue from "../models/Queue.js";
 
-
 const getDoctors = async (req, res) => {
   try {
     // get required data from the query ---> (work of frontend)
@@ -134,6 +133,12 @@ const handleJoinQueue = async (req, res) => {
       status: "waiting",
     });
 
+    // io engine from the Express app
+    const io = req.app.get("io");
+
+    // send message 'queue updated' to everyone and let frontend to know for which doctor
+    io.emit("queue_updated", { doctorId: doctorId });
+
     // give the successful response and the data for the frontend
     res.status(201).json({
       success: true,
@@ -167,14 +172,6 @@ const getLiveQueue = async (req, res) => {
         message: "You are not currently waiting in a queue",
       });
     }
-
-    const safeDoctorId = currentTicket.doctorId._id || currentTicket.doctorId;
-
-    console.log(
-      "Looking for people ahead of ticket created at:",
-      currentTicket.createdAt,
-    );
-    console.log("Doctor ID we are searching for:", safeDoctorId);
 
     // get count of how many people are ahead
     const peopleAhead = await Queue.countDocuments({
