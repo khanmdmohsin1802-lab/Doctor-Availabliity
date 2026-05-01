@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import Queue from "../models/Queue.js";
+import Doctor from "../models/Doctor.js";
 
 const getDoctorQueue = async (req, res) => {
   try {
@@ -65,7 +66,7 @@ const handleNextPatient = async (req, res) => {
     // io engine from the Express app
     const io = req.app.get("io");
 
-    // send message to everyone that queue has updated 
+    // send message to everyone that queue has updated
     io.emit("queue_updated", { doctorId: doctorId });
 
     // special emit for the next patient fr checkup "IT'S YOUR TURN!"
@@ -84,6 +85,37 @@ const handleNextPatient = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+const acceptingPatientsToggle = async (req, res) => {
+  try {
+    const doctorId = req.user._id;
+
+    const doctor = await User.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor NOT Found",
+      });
+    }
+
+    doctor.isAcceptingPatients = !doctor.isAcceptingPatients;
+
+    await doctor.save();
+
+    res.status(200).json({
+      success: true,
+      message: doctor.isAcceptingPatients
+        ? "You are now accepting patients."
+        : "You are no longer accepting new patients.",
+      data: {
+        isAcceptingPatients: doctor.isAcceptingPatients,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
