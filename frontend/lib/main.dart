@@ -4,6 +4,7 @@ import 'package:curasync/config/theme.dart';
 import 'package:curasync/providers/auth_provider.dart';
 import 'package:curasync/screens/auth/register_screen.dart';
 import 'package:curasync/screens/auth/login_screen.dart';
+import 'package:curasync/screens/patient/patient_home_screen.dart';
 
 void main() {
   runApp(
@@ -56,7 +57,7 @@ class _CuraSyncAppState extends State<CuraSyncApp> {
                 if (auth.isDoctor) {
                   return const PlaceholderScreen(title: 'Doctor Dashboard');
                 } else {
-                  return const PlaceholderScreen(title: 'Patient Home');
+                  return const PatientHomeScreen();
                 }
               }
               return const RegisterScreen();
@@ -68,7 +69,7 @@ class _CuraSyncAppState extends State<CuraSyncApp> {
         '/register': (context) => const RegisterScreen(),
         '/login': (context) => const LoginScreen(),
         '/doctor-dashboard': (context) => const PlaceholderScreen(title: 'Doctor Dashboard'),
-        '/patient-home': (context) => const PlaceholderScreen(title: 'Patient Home'),
+        '/patient-home': (context) => const PatientHomeScreen(),
       },
     );
   }
