@@ -34,4 +34,45 @@ const getDoctorQueue = async (req, res) => {
   }
 };
 
-export { getDoctorQueue };
+const handleNextPatient = async (req, res) => {
+  try {
+    const doctorId = req.user._id;
+
+    await Queue.updateOne(
+      {
+        doctorId: doctorId,
+        status: "in-progress",
+      },
+      { $set: { status: "completed" } },
+    );
+
+    const nextPatient = await Queue.findOneAndUpdate(
+      {
+        doctorId: doctorId,
+        status: "waiting",
+      },
+      { $set: { status: "in-progress" } },
+      { sort: { createdAt: 1 }, new: true },
+    ).populate("patientId", "name age weight email");
+
+    if (!nextPatient) {
+      return res.status(200).json({
+        success: true,
+        message: "No patient in the Waiting Room, Time for Coffee break",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Now seeing ${nextPatient.patientId.name}`,
+      data: nextPatient,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export { getDoctorQueue, handleNextPatient };

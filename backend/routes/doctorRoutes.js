@@ -1,6 +1,9 @@
 import express from "express";
 import { protect, authorizeRoles } from "../middlewares/authMilddleware.js";
-import { getDoctorQueue } from "../controllers/doctorController.js";
+import {
+  getDoctorQueue,
+  handleNextPatient,
+} from "../controllers/doctorController.js";
 
 const router = express.Router();
 
@@ -10,5 +13,7 @@ router.use(authorizeRoles("doctor"));
 
 // dashboard routes -
 router.get("/dashboard/queue", getDoctorQueue);
+
+router.patch("/queue/next", handleNextPatient);
 
 export default router;
