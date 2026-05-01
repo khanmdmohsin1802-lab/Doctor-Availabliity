@@ -52,18 +52,24 @@ const handleRegister = async (req, res) => {
 
 //Login function
 const handleLogin = async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  const tryUser = await User.findOne({ email }); // stores data of the one with that email () or gives false if not exist
+    const tryUser = await User.findOne({ email }); // stores data of the one with that email () or gives false if not exist
 
-  //check if user exist and also check the password by comparing the recived password and the tryUser password stord in form of hash using bcrypt compare
-  if (tryUser && (await bcrypt.compare(password, tryUser.password))) {
-    res.status(200).json({
-      _id: tryUser._id,
-      name: tryUser.name,
-      email: tryUser.email,
-      role: tryUser.role,
-      token: genrateToken(tryUser._id, tryUser.role),
+    //check if user exist and also check the password by comparing the recived password and the tryUser password stord in form of hash using bcrypt compare
+    if (tryUser && (await bcrypt.compare(password, tryUser.password))) {
+      res.status(200).json({
+        _id: tryUser._id,
+        name: tryUser.name,
+        email: tryUser.email,
+        role: tryUser.role,
+        token: genrateToken(tryUser._id, tryUser.role),
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
     });
   }
 };

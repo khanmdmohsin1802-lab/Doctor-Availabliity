@@ -1,6 +1,6 @@
 import User from "../models/User.js";
 import Queue from "../models/Queue.js";
-import Doctor from "../models/Doctor.js";
+
 
 const getDoctors = async (req, res) => {
   try {
