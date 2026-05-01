@@ -119,4 +119,4 @@ const acceptingPatientsToggle = async (req, res) => {
   }
 };
 
-export { getDoctorQueue, handleNextPatient };
+export { getDoctorQueue, handleNextPatient, acceptingPatientsToggle };

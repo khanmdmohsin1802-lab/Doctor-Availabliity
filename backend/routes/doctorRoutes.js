@@ -3,6 +3,7 @@ import { protect, authorizeRoles } from "../middlewares/authMilddleware.js";
 import {
   getDoctorQueue,
   handleNextPatient,
+  acceptingPatientsToggle,
 } from "../controllers/doctorController.js";
 
 const router = express.Router();
@@ -15,5 +16,7 @@ router.use(authorizeRoles("doctor"));
 router.get("/dashboard/queue", getDoctorQueue);
 
 router.patch("/queue/next", handleNextPatient);
+
+router.patch("/status/toggle", acceptingPatientsToggle);
 
 export default router;
