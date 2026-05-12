@@ -219,7 +219,7 @@ const getPatientProfile = async (req, res) => {
     }
 
     const history = await Queue.find({ patientId: patientId })
-      .populate("doctorId", "name speciality")
+      .populate("doctorId", "name specialty")
       .sort({ createdAt: -1 });
 
     if (history.length === 0) {

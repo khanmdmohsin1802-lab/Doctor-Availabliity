@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:curasync/config/theme.dart';
 import 'package:curasync/providers/auth_provider.dart';
 import 'package:curasync/services/api_service.dart';
+import 'package:curasync/screens/patient/queue_screen.dart';
+import 'package:curasync/screens/patient/history_screen.dart';
+import 'package:curasync/screens/patient/profile_screen.dart';
 
 class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
@@ -78,53 +81,279 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     _fetchDoctors();
   }
 
-  Future<void> _joinWaitlist(String doctorId) async {
-    final auth = context.read<AuthProvider>();
-    
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
+  // ─── Show Booking Bottom Sheet ───
+  void _showBookingSheet(Map<String, dynamic> doctor) {
+    final name = doctor['name'] ?? 'Unknown Doctor';
+    final specialty = doctor['specialty'] ?? 'General';
+    final isAccepting = doctor['isAcceptingPatients'] == true;
+    final reasonController = TextEditingController();
+    bool isBooking = false;
 
-    try {
-      final res = await ApiService.joinQueue(
-        token: auth.token!,
-        doctorId: doctorId,
-        reasonForVisit: 'General Consultation',
-      );
-      
-      if (!mounted) return;
-      Navigator.pop(context); // Remove loading dialog
-      
-      if (res['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Successfully joined the waitlist!'),
-            backgroundColor: Colors.green,
-          ),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              decoration: const BoxDecoration(
+                color: AppTheme.surfaceWhite,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ─── Drag Handle ───
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppTheme.inputBorder,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // ─── Header ───
+                    const Text(
+                      'Book Appointment',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // ─── Doctor Info ───
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.backgroundLight,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.person,
+                                size: 28, color: AppTheme.primaryBlue),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  specialty,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppTheme.textSecondary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isAccepting
+                                  ? AppTheme.success.withValues(alpha: 0.1)
+                                  : AppTheme.warning.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              isAccepting ? 'AVAILABLE' : 'BUSY',
+                              style: TextStyle(
+                                color: isAccepting
+                                    ? AppTheme.success
+                                    : AppTheme.warning,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // ─── Reason for Visit ───
+                    const Text(
+                      'REASON FOR VISIT',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: reasonController,
+                      maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Fever and headache since 2 days',
+                        hintStyle: const TextStyle(
+                            color: AppTheme.textHint, fontSize: 14),
+                        filled: true,
+                        fillColor: AppTheme.inputFill,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: AppTheme.inputBorder),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: AppTheme.inputBorder),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                              color: AppTheme.primaryBlue, width: 1.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // ─── Confirm Button ───
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: isBooking
+                            ? null
+                            : () async {
+                                setSheetState(() => isBooking = true);
+
+                                try {
+                                  final auth =
+                                      context.read<AuthProvider>();
+                                  final reason =
+                                      reasonController.text.trim().isEmpty
+                                          ? 'General Consultation'
+                                          : reasonController.text.trim();
+
+                                  final res = await ApiService.joinQueue(
+                                    token: auth.token!,
+                                    doctorId: doctor['_id'],
+                                    reasonForVisit: reason,
+                                  );
+
+                                  if (!mounted) return;
+                                  Navigator.pop(ctx); // Close sheet
+
+                                  if (res['success'] == true) {
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(
+                                      SnackBar(
+                                        content: Text(res['message'] ??
+                                            'Successfully joined the waitlist!'),
+                                        backgroundColor: AppTheme.success,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    );
+                                    // Switch to Queue tab
+                                    setState(
+                                        () => _selectedIndex = 1);
+                                  } else {
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(
+                                      SnackBar(
+                                        content: Text(res['message'] ??
+                                            'Failed to join waitlist'),
+                                        backgroundColor: AppTheme.error,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(
+                                    SnackBar(
+                                      content:
+                                          const Text('Network error. Please try again.'),
+                                      backgroundColor: AppTheme.error,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryBlue,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor:
+                              AppTheme.primaryBlue.withValues(alpha: 0.6),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: isBooking
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : const Text(
+                                'Confirm Booking',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
-        // We could navigate to the Queue tab here
-        setState(() => _selectedIndex = 1);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(res['message'] ?? 'Failed to join waitlist'),
-            backgroundColor: AppTheme.error,
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Network error.'),
-          backgroundColor: AppTheme.error,
-        ),
-      );
-    }
+      },
+    );
   }
 
   @override
@@ -132,59 +361,79 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       body: SafeArea(
-        child: Column(
+        child: IndexedStack(
+          index: _selectedIndex,
           children: [
-            _buildHeader(),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _fetchDoctors,
-                color: AppTheme.primaryBlue,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ─── Title & Subtitle ───
-                      Text(
-                        'Find your specialist.',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 32,
-                            ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Access world-class clinical expertise from\nthe comfort of your home.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textSecondary,
-                              height: 1.5,
-                              fontSize: 15,
-                            ),
-                      ),
-                      const SizedBox(height: 24),
+            // ─── Tab 0: HOME ───
+            _buildHomeTab(),
 
-                      // ─── Search Bar ───
-                      _buildSearchBar(),
-                      const SizedBox(height: 24),
+            // ─── Tab 1: QUEUE ───
+            const QueueScreen(),
 
-                      // ─── Specialty Tabs ───
-                      _buildSpecialtyTabs(),
-                      const SizedBox(height: 32),
+            // ─── Tab 2: HISTORY ───
+            const HistoryScreen(),
 
-                      // ─── Doctor List ───
-                      _buildDoctorList(),
-                      
-                      const SizedBox(height: 40), // Bottom padding
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            // ─── Tab 3: PROFILE ───
+            const ProfileScreen(),
           ],
         ),
       ),
       bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  // ─── Home Tab Content ───
+  Widget _buildHomeTab() {
+    return Column(
+      children: [
+        _buildHeader(),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _fetchDoctors,
+            color: AppTheme.primaryBlue,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ─── Title & Subtitle ───
+                  Text(
+                    'Find your specialist.',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 32,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Access world-class clinical expertise from\nthe comfort of your home.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textSecondary,
+                          height: 1.5,
+                          fontSize: 15,
+                        ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ─── Search Bar ───
+                  _buildSearchBar(),
+                  const SizedBox(height: 24),
+
+                  // ─── Specialty Tabs ───
+                  _buildSpecialtyTabs(),
+                  const SizedBox(height: 32),
+
+                  // ─── Doctor List ───
+                  _buildDoctorList(),
+                  
+                  const SizedBox(height: 40), // Bottom padding
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -460,7 +709,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 ],
               ),
               ElevatedButton(
-                onPressed: () => _joinWaitlist(doctor['_id']),
+                onPressed: () => _showBookingSheet(doctor),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isAccepting ? AppTheme.primaryBlue : AppTheme.inputFill,
                   foregroundColor: isAccepting ? Colors.white : AppTheme.primaryBlue,
@@ -521,9 +770,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     
     return GestureDetector(
       onTap: () {
-        if (index == 0) return; // Already here
         setState(() => _selectedIndex = index);
-        // Implement navigation to other tabs later
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
